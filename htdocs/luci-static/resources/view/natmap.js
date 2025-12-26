@@ -113,7 +113,8 @@ return view.extend({
 		L.resolveDefault(fs.list(etc_path + '/ddns'), []),
 		callGetCongestions().then((res) => { return res.algorithm }),
 		uci.load('firewall'),
-		uci.load('natmap')
+		uci.load('natmap'),
+		L.resolveDefault(fs.list(etc_path + '/tools'), [])
 	]);
 	},
 
@@ -127,6 +128,7 @@ return view.extend({
 		const scripts_notify = res[6] ? res[6] : [];
 		const scripts_ddns = res[7] ? res[7] : [];
 		const congestions = res[8];
+		const scripts_tool = res[11] ? res[11] : [];
 
 		let m, s, o;
 
@@ -299,6 +301,7 @@ return view.extend({
 		s.tab('forward', _('Forward Settings'));
 		s.tab('notify', _('Notify Scripts'));
 		s.tab('ddns', _('DDNS Scripts'));
+		s.tab('tool', _('Tools Scripts'));
 		s.tab('custom', _('Custom Script'));
 
 		o = s.option(form.Flag, 'enable', _('Enable'));
@@ -752,6 +755,64 @@ return view.extend({
 		o.depends({ ddns_https: "", "!reverse": true })
 		o.modalonly = true;
 
+		o = s.taboption('tool', form.Flag, 'tool_enable', _('Enable Tools'));
+		o.default = o.disabled;
+		o.editable = true;
+		o.rmempty = true;
+
+		o = s.taboption('tool', form.ListValue, 'tool_script', _('Tools Scripts'));
+		o.datatype = 'file';
+		o.rmempty = false;
+		o.modalonly = true;
+		o.depends('tool_enable', '1');
+
+		if (scripts_tool.length)
+			scripts_tool.forEach((script) => {
+				o.value(etc_path + '/tools/' + script.name, script.name);
+			});
+
+		o = s.taboption('tool', form.DynamicList, 'tool_tokens', _('Tokens'),
+			_('Add multiple entries here in KEY=VAL shell variable format to supply multiple KEY variables.'));
+		o.datatype = 'list(string)';
+		o.placeholder = 'KEY=VAL';
+		o.rmempty = true;
+		o.modalonly = true;
+		o.depends('tool_enable', '1');
+
+		// Cloudflare Origin Rule specific fields
+		o = s.taboption('tool', form.Value, 'tool_cf_token', _('Cloudflare Token'));
+		o.rmempty = true;
+		o.modalonly = true;
+		o.depends('tool_script', etc_path + '/tools/cf-origin');
+
+		o = s.taboption('tool', form.Value, 'tool_cf_zone_id', _('Zone ID'));
+		o.rmempty = true;
+		o.modalonly = true;
+		o.depends('tool_script', etc_path + '/tools/cf-origin');
+
+		o = s.taboption('tool', form.Value, 'tool_cf_rule_name', _('Origin Rule Name'));
+		o.rmempty = true;
+		o.modalonly = true;
+		o.depends('tool_script', etc_path + '/tools/cf-origin');
+
+		// Cloudflare Worker specific fields
+		o = s.taboption('tool', form.Value, 'tool_cf_worker_url', _('Worker URL'));
+		o.rmempty = true;
+		o.modalonly = true;
+		o.depends('tool_script', etc_path + '/tools/cf-worker');
+
+		o = s.taboption('tool', form.Value, 'tool_cf_worker_key', _('Auth Key'));
+		o.rmempty = true;
+		o.password = true;
+		o.modalonly = true;
+		o.depends('tool_script', etc_path + '/tools/cf-worker');
+
+		o = s.taboption('tool', form.Value, 'tool_cf_worker_service', _('Service Name'));
+		o.rmempty = true;
+		o.placeholder = 'natmap';
+		o.modalonly = true;
+		o.depends('tool_script', etc_path + '/tools/cf-worker');
+		
 		o = s.taboption('custom', form.Value, 'custom_script', _('Custom Script'));
 		o.datatype = 'file';
 		o.modalonly = true;
