@@ -470,7 +470,7 @@ return view.extend({
 		o.validate = function(section_id, value) {
 			const forward_mode = this.section.getUIElement(section_id, 'forward_mode').getValue();
 
-			if (new RegExp(/[a-zA-Z]/).test(value) && forward_mode === 'dnat')
+			if (new RegExp(/^[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})*\.?$/).test(value) && !new RegExp(/^[0-9]+(\.[0-9]+){3}$/).test(value) && forward_mode === 'dnat')
 				return _('Expecting: %s').format(_('The hostname not support under DNAT mode'));
 
 			return true;
@@ -517,11 +517,11 @@ return view.extend({
 			return enforward ? ((cval == '0' && refresh) ? cltname : cval) : _('No');
 		};
 
-		o = s.taboption('forward', form.Flag, 'refresh', _('Refresh client listen port'));
-		o.default = o.enabled;
+		o = s.taboption('forward', form.Flag, 'refresh', _('Refresh client'), _('%s set 0 will rewrite client listen port').format(_('Forward target port')));
+		o.default = o.disabled;
 		o.rmempty = false;
 		o.retain = true;
-		o.depends('forward_port', '0');
+		o.depends('forward', '1');
 		o.modalonly = true;
 
 		o = s.taboption('forward', form.ListValue, 'clt_script', _('Refresh Scripts'));
